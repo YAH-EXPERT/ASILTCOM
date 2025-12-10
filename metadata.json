@@ -1,0 +1,7 @@
+{
+  "name": "ASILTCOM",
+  "description": "A WhatsApp-style messaging application that manages universal contacts and uses Gemini AI for text and voice conversations.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
