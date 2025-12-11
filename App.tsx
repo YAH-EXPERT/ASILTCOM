@@ -3,8 +3,96 @@ import { v4 as uuidv4 } from 'uuid';
 import { ContactList } from './components/ContactList';
 import { ChatWindow } from './components/ChatWindow';
 import { AddContactModal } from './components/AddContactModal';
-import { Contact, Message, ChatState } from './types';
+import { UserProfileModal } from './components/UserProfileModal';
+import { SocialProfileView } from './components/SocialProfileView';
+import { AdminLoginModal } from './components/AdminLoginModal';
+import { AdminDashboard } from './components/AdminDashboard';
+import { Contact, Message, ChatState, ThemeMode, ThemeColors } from './types';
 import { generateReply } from './services/geminiService';
+
+// --- THEME DEFINITIONS ---
+const THEMES: Record<ThemeMode, ThemeColors> = {
+  light: {
+    id: 'light',
+    name: 'Classique',
+    bgApp: '#d1d7db',
+    bgPanel: '#ffffff',
+    bgChat: '#efeae2',
+    bgMessageSent: '#d9fdd3',
+    bgMessageReceived: '#ffffff',
+    textPrimary: '#111b21',
+    textSecondary: '#667781',
+    accent: '#00a884',
+    border: '#e9edef',
+    inputBg: '#f0f2f5',
+    socialBg: '#f0f2f5',
+    socialCardBg: '#ffffff'
+  },
+  night: {
+    id: 'night',
+    name: 'Night',
+    bgApp: '#090e11',
+    bgPanel: '#111b21',
+    bgChat: '#0b141a',
+    bgMessageSent: '#005c4b',
+    bgMessageReceived: '#202c33',
+    textPrimary: '#e9edef',
+    textSecondary: '#8696a0',
+    accent: '#00a884',
+    border: '#222d34',
+    inputBg: '#2a3942',
+    socialBg: '#0b141a',
+    socialCardBg: '#111b21'
+  },
+  sifi: {
+    id: 'sifi',
+    name: 'SI-FI Neon',
+    bgApp: '#000000',
+    bgPanel: '#050510',
+    bgChat: '#0a0a1a',
+    bgMessageSent: 'rgba(0, 243, 255, 0.15)',
+    bgMessageReceived: '#1a1a2e',
+    textPrimary: '#00f3ff',
+    textSecondary: '#b0b0ff',
+    accent: '#ff0055',
+    border: '#00f3ff',
+    inputBg: '#0f0f25',
+    socialBg: '#000000',
+    socialCardBg: '#0a0a1a'
+  },
+  tropical: {
+    id: 'tropical',
+    name: 'Madagascar',
+    bgApp: '#004d40',
+    bgPanel: '#ffffff',
+    bgChat: '#e0f2f1',
+    bgMessageSent: '#c8e6c9', // Light Green
+    bgMessageReceived: '#fff9c4', // Light Yellow
+    textPrimary: '#1b5e20',
+    textSecondary: '#558b2f',
+    accent: '#ff6f00', // Sunset Orange
+    border: '#b2dfdb',
+    inputBg: '#f1f8e9',
+    socialBg: '#e8f5e9',
+    socialCardBg: '#ffffff'
+  },
+  futurist: {
+    id: 'futurist',
+    name: 'Futurist',
+    bgApp: '#e2e8f0',
+    bgPanel: '#f8fafc',
+    bgChat: '#f1f5f9',
+    bgMessageSent: '#3b82f6', // Bright Blue
+    bgMessageReceived: '#ffffff',
+    textPrimary: '#0f172a',
+    textSecondary: '#64748b',
+    accent: '#3b82f6',
+    border: '#cbd5e1',
+    inputBg: '#e2e8f0',
+    socialBg: '#cbd5e1',
+    socialCardBg: '#f8fafc'
+  }
+};
 
 // Mock initial data
 const INITIAL_CONTACTS: Contact[] = [
@@ -13,6 +101,7 @@ const INITIAL_CONTACTS: Contact[] = [
     name: 'YAH (MGAI 🇲🇬)',
     phoneNumber: '+261 34 04 999 99',
     avatarUrl: 'https://images.unsplash.com/photo-1620066127282-3d5f96e42636?auto=format&fit=crop&w=200&q=80',
+    coverUrl: 'https://images.unsplash.com/photo-1542173872-4632194b0d01?auto=format&fit=crop&w=1200&q=80',
     lastMessage: 'Manao ahoana tompoko! 🇲🇬',
     lastMessageTime: Date.now() - 10000,
     unreadCount: 1,
@@ -22,6 +111,7 @@ const INITIAL_CONTACTS: Contact[] = [
     name: 'Nara',
     phoneNumber: '+221 77 123 45 67',
     avatarUrl: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=200&q=80',
+    coverUrl: 'https://images.unsplash.com/photo-1489533119213-66a5cd877091?auto=format&fit=crop&w=1200&q=80',
     lastMessage: 'Je viens de retrouver cette photo !',
     lastMessageTime: Date.now() - 300000,
     unreadCount: 2,
@@ -81,130 +171,81 @@ const INITIAL_MESSAGES: ChatState = {
       status: 'delivered'
     }
   ],
-  'ai-nara': [
-    {
-      id: 'n1',
-      contactId: 'ai-nara',
-      sender: 'contact',
-      text: 'Salut ! 👋 Je suis Nara. Ravie de faire ta connaissance.',
-      timestamp: Date.now() - 400000,
-      status: 'read'
-    },
-    {
-      id: 'n2',
-      contactId: 'ai-nara',
-      sender: 'contact',
-      text: 'J\'adore partager ma culture et mes souvenirs. Regarde, c\'était lors de mon dernier voyage à Dakar.',
-      imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=500&q=80',
-      timestamp: Date.now() - 350000,
-      status: 'read'
-    },
-    {
-      id: 'n3',
-      contactId: 'ai-nara',
-      sender: 'contact',
-      text: 'Je viens de retrouver cette photo !',
-      imageUrl: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=500&q=80',
-      timestamp: Date.now() - 300000,
-      status: 'delivered'
-    }
-  ],
-  'dev-marc': [
-    {
-      id: 'dm1',
-      contactId: 'dev-marc',
-      sender: 'contact',
-      text: 'Hey. I\'ve reviewed the database migration plan. We need to optimize the indexing strategy before deployment.',
-      timestamp: Date.now() - 50000,
-      status: 'delivered'
-    }
-  ],
-  'dev-sarah': [
-    {
-      id: 'ds1',
-      contactId: 'dev-sarah',
-      sender: 'contact',
-      text: 'Hi! I just pushed the new UI components. Let me know what you think about the micro-interactions on the button hover states.',
-      timestamp: Date.now() - 150000,
-      status: 'read'
-    }
-  ],
-  'dev-alex': [
-    {
-      id: 'da1',
-      contactId: 'dev-alex',
-      sender: 'contact',
-      text: 'Production deployment finished successfully. All systems operational. 🟢',
-      timestamp: Date.now() - 600000,
-      status: 'read'
-    }
-  ],
-  '1': [
-    {
-      id: 'm1',
-      contactId: '1',
-      sender: 'contact',
-      text: 'Hello! How can I help you today?',
-      timestamp: Date.now() - 100000,
-      status: 'read'
-    }
-  ],
-  '2': [
-    {
-      id: 'm2',
-      contactId: '2',
-      sender: 'contact',
-      text: 'See you tomorrow!',
-      timestamp: Date.now() - 3600000,
-      status: 'read'
-    }
-  ]
+  // ... other messages loaded dynamically
 };
 
 const App: React.FC = () => {
+  // Theme State
+  const [themeMode, setThemeMode] = useState<ThemeMode>('light');
+  const theme = THEMES[themeMode];
+
   const [contacts, setContacts] = useState<Contact[]>(() => {
-    const saved = localStorage.getItem('unichat_contacts');
-    if (saved) {
-        const parsed = JSON.parse(saved);
-        // Ensure new contacts are merged in if missing
-        const newContacts = INITIAL_CONTACTS.filter(ic => !parsed.find((c: Contact) => c.id === ic.id));
-        return [...newContacts, ...parsed];
+    try {
+      const saved = localStorage.getItem('unichat_contacts');
+      if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            const newContacts = INITIAL_CONTACTS.filter(ic => !parsed.find((c: Contact) => c.id === ic.id));
+            return [...newContacts, ...parsed];
+          }
+      }
+    } catch (e) {
+      console.error("Failed to load contacts", e);
     }
     return INITIAL_CONTACTS;
   });
 
   const [chatState, setChatState] = useState<ChatState>(() => {
-    const saved = localStorage.getItem('unichat_messages');
-    if (saved) {
-         const parsed = JSON.parse(saved);
-         // Ensure initial messages for new contacts exist
-         let updatedState = { ...parsed };
-         Object.keys(INITIAL_MESSAGES).forEach(key => {
-             if (!updatedState[key]) {
-                 updatedState[key] = INITIAL_MESSAGES[key];
-             }
-         });
-         return updatedState;
+    try {
+      const saved = localStorage.getItem('unichat_messages');
+      if (saved) {
+           const parsed = JSON.parse(saved);
+           if (typeof parsed === 'object' && parsed !== null) {
+              let updatedState = { ...parsed };
+              Object.keys(INITIAL_MESSAGES).forEach(key => {
+                  if (!updatedState[key]) {
+                      updatedState[key] = INITIAL_MESSAGES[key];
+                  }
+              });
+              return updatedState;
+           }
+      }
+    } catch (e) {
+      console.error("Failed to load messages", e);
     }
     return INITIAL_MESSAGES;
   });
 
   const [activeContactId, setActiveContactId] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
   const [typingStatus, setTypingStatus] = useState<Record<string, boolean>>({});
+  
+  // Navigation State
+  const [viewMode, setViewMode] = useState<'chat' | 'social' | 'admin'>('chat');
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profileContact, setProfileContact] = useState<Contact | null>(null);
+  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
+  const [socialIsEditable, setSocialIsEditable] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('unichat_contacts', JSON.stringify(contacts));
+    try {
+      localStorage.setItem('unichat_contacts', JSON.stringify(contacts));
+    } catch (e) {
+      console.error("Failed to save contacts", e);
+    }
   }, [contacts]);
 
   useEffect(() => {
-    localStorage.setItem('unichat_messages', JSON.stringify(chatState));
+    try {
+      localStorage.setItem('unichat_messages', JSON.stringify(chatState));
+    } catch (e) {
+      console.error("Failed to save messages", e);
+    }
   }, [chatState]);
 
   const activeContact = contacts.find((c) => c.id === activeContactId) || null;
   const activeMessages = activeContactId ? (chatState[activeContactId] || []) : [];
 
-  // Core helper to simply add a message to state
   const addMessageToState = (text: string, sender: 'user' | 'contact', contactId: string) => {
     const newMessage: Message = {
       id: uuidv4(),
@@ -234,19 +275,12 @@ const App: React.FC = () => {
     );
   };
 
-  // Logic for standard text chat (User sends -> AI replies)
   const handleSendMessage = async (text: string) => {
     if (!activeContactId) return;
-
-    // 1. Add User Message
     addMessageToState(text, 'user', activeContactId);
-
-    // 2. Trigger AI Reply
     setTypingStatus((prev) => ({ ...prev, [activeContactId]: true }));
     
     const history = chatState[activeContactId] || [];
-    
-    // Call Gemini
     const aiReplyText = await generateReply(
         contacts.find(c => c.id === activeContactId)!,
         history, 
@@ -254,12 +288,9 @@ const App: React.FC = () => {
     );
 
     setTypingStatus((prev) => ({ ...prev, [activeContactId]: false }));
-
-    // 3. Add AI Reply
     addMessageToState(aiReplyText, 'contact', activeContactId);
   };
 
-  // Logic for Voice Call transcriptions (User/AI speak -> Text logged)
   const handleVoiceMessage = (text: string, sender: 'user' | 'contact') => {
     if (!activeContactId) return;
     addMessageToState(text, sender, activeContactId);
@@ -274,65 +305,198 @@ const App: React.FC = () => {
       lastMessageTime: Date.now(),
     };
     setContacts((prev) => [newContact, ...prev]);
-    setActiveContactId(newContact.id); // Auto switch to new chat
+    setActiveContactId(newContact.id);
   };
 
   const handleSelectContact = (id: string) => {
     setActiveContactId(id);
+    setViewMode('chat');
     setContacts((prev) => 
         prev.map(c => c.id === id ? { ...c, unreadCount: 0 } : c)
     );
   };
 
-  return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#d1d7db] md:p-5">
-      <div className="flex w-full h-full max-w-[1600px] mx-auto bg-white shadow-lg overflow-hidden md:rounded-xl">
-        
-        {/* Sidebar - hidden on mobile if chat is active */}
-        <div className={`${activeContactId ? 'hidden md:flex' : 'flex'} w-full md:w-[30%] lg:w-[25%] flex-col h-full`}>
-          <ContactList
-            contacts={contacts}
-            activeContactId={activeContactId}
-            onSelectContact={handleSelectContact}
-            onAddContact={() => setIsModalOpen(true)}
-          />
-        </div>
+  const handleUpdateContact = (id: string, updates: Partial<Contact>) => {
+    setContacts(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    if (profileContact && profileContact.id === id) {
+        setProfileContact(prev => prev ? { ...prev, ...updates } : null);
+    }
+  };
 
-        {/* Chat Area */}
-        <div className={`${!activeContactId ? 'hidden md:flex' : 'flex'} w-full md:w-[70%] lg:w-[75%] h-full bg-[#efeae2]`}>
-          {activeContact ? (
-            <ChatWindow
-              contact={activeContact}
-              messages={activeMessages}
-              onSendMessage={handleSendMessage}
-              onVoiceMessage={handleVoiceMessage}
-              onBack={() => setActiveContactId(null)}
-              isTyping={!!typingStatus[activeContact.id]}
-            />
-          ) : (
-            <div className="hidden md:flex flex-col items-center justify-center w-full h-full text-center p-10 bg-[#f0f2f5] border-b-[6px] border-[#25D366]">
-              <div className="mb-8">
-                 <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/1024px-WhatsApp.svg.png" alt="Welcome" className="w-24 h-24 opacity-60 grayscale" />
-              </div>
-              <h1 className="text-3xl font-light text-gray-700 mb-4">ASILTCOM</h1>
-              <p className="text-gray-500 text-sm max-w-md leading-6">
-                Send and receive messages with AI-powered contacts using universal phone numbers. 
-                <br/>
-                Connect your phone to Wi-Fi to keep contacts synced.
-              </p>
-              <div className="mt-8 text-xs text-gray-400 flex items-center gap-1">
-                 All messages are end-to-end encrypted (simulated).
-              </div>
+  const handleProfileClick = () => {
+    if (activeContact) {
+        setProfileContact(activeContact);
+        setIsProfileModalOpen(true);
+    }
+  };
+
+  const handleOpenSocial = () => {
+    setIsProfileModalOpen(false);
+    setSocialIsEditable(false);
+    setViewMode('social');
+  };
+
+  const handleBackToChat = () => {
+    if (socialIsEditable) {
+        setViewMode('admin');
+        setActiveContactId(null);
+    } else {
+        setViewMode('chat');
+    }
+  };
+  
+  const handleOpenSocialFromAdmin = (contactId: string) => {
+      setActiveContactId(contactId);
+      setSocialIsEditable(true); // Admin can edit
+      setViewMode('social');
+  };
+
+  const handleOpenAdminLogin = () => {
+      setIsAdminLoginOpen(true);
+  };
+
+  const handleAdminLoginSuccess = () => {
+      setViewMode('admin');
+  };
+
+  const handleAdminLogout = () => {
+      setViewMode('chat');
+      setActiveContactId(null);
+  };
+
+  const handleExportXML = () => {
+    const data = {
+        contacts,
+        messages: chatState,
+        meta: { version: "1.0", exportedAt: new Date().toISOString() }
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `asiltcom_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportXML = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = JSON.parse(e.target?.result as string);
+            if (data.contacts && data.messages) {
+                setContacts(data.contacts);
+                setChatState(data.messages);
+                alert("Base de données importée avec succès !");
+            } else {
+                alert("Format de fichier invalide.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erreur lors de l'importation.");
+        }
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <div className="flex w-full overflow-hidden transition-colors duration-500 md:p-5 h-[100dvh]" style={{ backgroundColor: theme.bgApp }}>
+      <div className="flex w-full h-full max-w-[1600px] mx-auto shadow-2xl overflow-hidden md:rounded-xl relative transition-colors duration-500" style={{ backgroundColor: theme.bgPanel }}>
+        
+        {viewMode === 'social' && activeContact && (
+            <div className="w-full h-full z-20 animate-fade-in absolute inset-0">
+                <SocialProfileView 
+                    contact={activeContact} 
+                    onBackToChat={handleBackToChat} 
+                    onUpdateContact={handleUpdateContact}
+                    isEditable={socialIsEditable}
+                    theme={theme}
+                />
             </div>
-          )}
-        </div>
+        )}
+
+        {viewMode === 'admin' && (
+            <div className="w-full h-full z-20 animate-fade-in absolute inset-0">
+                <AdminDashboard 
+                    contacts={contacts}
+                    onUpdateContact={handleUpdateContact}
+                    onOpenSocial={handleOpenSocialFromAdmin}
+                    onLogout={handleAdminLogout}
+                    onExportXML={handleExportXML}
+                    onImportXML={handleImportXML}
+                />
+            </div>
+        )}
+
+        {viewMode === 'chat' && (
+            <>
+                <div className={`${activeContactId ? 'hidden md:flex' : 'flex'} w-full md:w-[30%] lg:w-[25%] flex-col h-full border-r transition-colors duration-300`} style={{ borderColor: theme.border, backgroundColor: theme.bgPanel }}>
+                  <ContactList
+                    contacts={contacts}
+                    activeContactId={activeContactId}
+                    onSelectContact={handleSelectContact}
+                    onAddContact={() => setIsAddContactModalOpen(true)}
+                    onOpenAdmin={handleOpenAdminLogin}
+                    theme={theme}
+                    onThemeChange={setThemeMode}
+                  />
+                </div>
+
+                <div className={`${!activeContactId ? 'hidden md:flex' : 'flex'} w-full md:w-[70%] lg:w-[75%] h-full transition-colors duration-500`} style={{ backgroundColor: theme.bgChat }}>
+                  {activeContact ? (
+                    <ChatWindow
+                      contact={activeContact}
+                      messages={activeMessages}
+                      onSendMessage={handleSendMessage}
+                      onVoiceMessage={handleVoiceMessage}
+                      onBack={() => setActiveContactId(null)}
+                      onProfileClick={handleProfileClick}
+                      isTyping={!!typingStatus[activeContact.id]}
+                      theme={theme}
+                    />
+                  ) : (
+                    <div className="hidden md:flex flex-col items-center justify-center w-full h-full text-center p-10 border-b-[6px] transition-colors duration-500"
+                         style={{ backgroundColor: theme.bgPanel, borderBottomColor: theme.accent, color: theme.textSecondary }}>
+                      <div className="mb-8">
+                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/1024px-WhatsApp.svg.png" alt="Welcome" className="w-24 h-24 opacity-60 grayscale" />
+                      </div>
+                      <h1 className="text-3xl font-light mb-4" style={{ color: theme.textPrimary }}>ASILTCOM</h1>
+                      <p className="text-sm max-w-md leading-6">
+                        Send and receive messages with AI-powered contacts using universal phone numbers. 
+                        <br/>
+                        Connect your phone to Wi-Fi to keep contacts synced.
+                      </p>
+                      <div className="mt-8 text-xs opacity-50 flex items-center gap-1">
+                         All messages are end-to-end encrypted (simulated).
+                      </div>
+                    </div>
+                  )}
+                </div>
+            </>
+        )}
       </div>
 
       <AddContactModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isAddContactModalOpen}
+        onClose={() => setIsAddContactModalOpen(false)}
         onSave={handleAddContact}
       />
+
+      <AdminLoginModal 
+        isOpen={isAdminLoginOpen}
+        onClose={() => setIsAdminLoginOpen(false)}
+        onLoginSuccess={handleAdminLoginSuccess}
+      />
+
+      {profileContact && (
+          <UserProfileModal 
+            isOpen={isProfileModalOpen}
+            onClose={() => setIsProfileModalOpen(false)}
+            contact={profileContact}
+            onOpenSocial={handleOpenSocial}
+            theme={theme}
+          />
+      )}
     </div>
   );
 };

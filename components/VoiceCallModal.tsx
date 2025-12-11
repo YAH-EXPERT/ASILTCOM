@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
 import { Contact } from '../types';
-import { Mic, MicOff, PhoneOff, Video } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Video, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface VoiceCallModalProps {
   contact: Contact;
@@ -55,6 +55,7 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ contact, isOpen,
   const [status, setStatus] = useState<'connecting' | 'connected' | 'error' | 'ended'>('connecting');
   const [isMuted, setIsMuted] = useState(false);
   const [serverActive, setServerActive] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   
   const inputContextRef = useRef<AudioContext | null>(null);
   const outputContextRef = useRef<AudioContext | null>(null);
@@ -78,9 +79,10 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ contact, isOpen,
     
     if (isOpen) {
       activeRef.current = true;
+      setErrorMessage('');
       const timer = setTimeout(() => {
         if (isMounted) startSession();
-      }, 100);
+      }, 500); // Slight delay to ensure UI mount
       return () => clearTimeout(timer);
     } else {
       activeRef.current = false;
@@ -166,11 +168,11 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ contact, isOpen,
         
         analyser.getByteTimeDomainData(dataArray);
         
-        ctx.fillStyle = '#0f1416'; // Clear with background color
+        ctx.fillStyle = '#0f1416';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         ctx.lineWidth = 2;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'; // Subtle white line
+        ctx.strokeStyle = 'rgba(0, 168, 132, 0.6)'; // WhatsApp Green-ish
         ctx.beginPath();
         
         const sliceWidth = canvas.width * 1.0 / bufferLength;
@@ -199,6 +201,7 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ contact, isOpen,
   const startSession = async () => {
     try {
       setStatus('connecting');
+      setErrorMessage('');
       const apiKey = process.env.API_KEY;
       if (!apiKey) throw new Error("API Key not found");
 
@@ -233,15 +236,9 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ contact, isOpen,
       let systemInstruction = `You are simulating a voice call with a friend named ${contact.name}. Your number is ${contact.phoneNumber}. Keep responses conversational, concise, and natural.`;
 
       if (contact.id === 'ai-nara') {
-        systemInstruction = `Tu es Nara, une femme africaine métisse, intelligente, rassurante et séduisante. Ton ton est doux et envoûtant. Tu parles français. Sois concise et naturelle comme dans un vrai appel vocal.`;
+        systemInstruction = `Tu es Nara, une femme africaine métisse. Ton ton est doux, rassurant et séduisant. Tu parles français.`;
       } else if (contact.id === 'ai-yah') {
-        systemInstruction = `Tu es YAH, l'IA de Madagascar. Tu parles couramment le Malgache et le Français. Tu es poli, sage et chaleureux (Fihavanana).`;
-      } else if (contact.id === 'dev-marc') {
-        systemInstruction = `You are Marc, a cynical but brilliant Backend Engineer. Short, direct answers. You use technical jargon.`;
-      } else if (contact.id === 'dev-sarah') {
-        systemInstruction = `You are Sarah, a cheerful Frontend Lead. Enthusiastic and helpful tone.`;
-      } else if (contact.id === 'dev-alex') {
-        systemInstruction = `You are Alex, a DevOps Engineer. Structured, reliable, slightly robotic tone.`;
+        systemInstruction = `Tu es YAH, l'IA de Madagascar. Tu parles couramment le Malgache et le Français.`;
       }
 
       // Connect to Gemini Live
@@ -256,13 +253,11 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ contact, isOpen,
             const source = inputCtx.createMediaStreamSource(stream);
             sourceRef.current = source;
             
-            // Analyser for Visualizer
             const analyser = inputCtx.createAnalyser();
             analyser.fftSize = 2048;
             source.connect(analyser);
             analyserRef.current = analyser;
             
-            // Start Visualizer
             drawVisualizer();
 
             const scriptProcessor = inputCtx.createScriptProcessor(4096, 1, 1);
@@ -272,7 +267,6 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ contact, isOpen,
               if (!activeRef.current || isMuted) return;
 
               const inputData = e.inputBuffer.getChannelData(0);
-              
               const l = inputData.length;
               const int16 = new Int16Array(l);
               for (let i = 0; i < l; i++) {
@@ -290,11 +284,9 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ contact, isOpen,
                         }
                      });
                  } catch (err) {
-                     console.error("Error sending audio data", err);
+                     // Silent fail on send
                  }
-              }).catch(err => {
-                  console.error("Session promise error", err);
-              });
+              }).catch(() => {});
             };
 
             source.connect(scriptProcessor);
@@ -353,9 +345,7 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ contact, isOpen,
             }
 
             if (message.serverContent?.interrupted) {
-                console.log("Model interrupted");
                 flushTranscriptions();
-
                 sourcesRef.current.forEach(s => {
                     try { s.stop(); } catch(e) {}
                 });
@@ -365,18 +355,26 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ contact, isOpen,
             }
           },
           onclose: () => {
-             console.log("Session closed");
              flushTranscriptions();
              if (activeRef.current) setStatus('ended');
           },
-          onerror: (err) => {
+          onerror: (err: any) => {
              console.error("Session error", err);
-             if (activeRef.current) setStatus('error');
+             // Auto-retry if service unavailable
+             if (err && (err.toString().includes("unavailable") || err.message?.includes("unavailable"))) {
+                 setErrorMessage("Service busy, retrying...");
+                 setTimeout(() => handleRetry(), 3000);
+             } else {
+                 if (activeRef.current) {
+                     setStatus('error');
+                     setErrorMessage(err.message || "Connection Error");
+                 }
+             }
           }
         },
         config: {
             responseModalities: [Modality.AUDIO],
-            // Fix: Transcription configs must be empty objects to enable them, without 'model' field
+            // Empty objects are sufficient to enable default transcription
             inputAudioTranscription: {}, 
             outputAudioTranscription: {},
             systemInstruction: systemInstruction
@@ -385,10 +383,20 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ contact, isOpen,
       
       sessionRef.current = await sessionPromise;
       
-    } catch (e) {
+    } catch (e: any) {
       console.error("Connection failed", e);
       setStatus('error');
+      setErrorMessage(e.message || "Failed to connect");
     }
+  };
+
+  const handleRetry = () => {
+      cleanup();
+      setStatus('connecting');
+      setErrorMessage('');
+      setTimeout(() => {
+          startSession();
+      }, 1000);
   };
 
   const handleMuteToggle = () => {
@@ -428,12 +436,22 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ contact, isOpen,
             </div>
             
             <h2 className="text-3xl font-medium mb-2">{contact.name}</h2>
-            <p className={`text-lg font-light ${status === 'error' ? 'text-red-400' : 'text-gray-400'}`}>
-                {status === 'connecting' && 'Connecting...'}
-                {status === 'connected' && (serverActive ? 'Speaking...' : 'Listening...')}
-                {status === 'ended' && 'Call Ended'}
-                {status === 'error' && 'Connection Failed. Check Network.'}
-            </p>
+            <div className="flex flex-col items-center gap-2">
+                <p className={`text-lg font-light ${status === 'error' ? 'text-red-400' : 'text-gray-400'}`}>
+                    {status === 'connecting' && 'Connecting...'}
+                    {status === 'connected' && (serverActive ? 'Speaking...' : 'Listening...')}
+                    {status === 'ended' && 'Call Ended'}
+                    {status === 'error' && (errorMessage || 'Connection Failed')}
+                </p>
+                {status === 'error' && (
+                    <button 
+                        onClick={handleRetry}
+                        className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full hover:bg-white/20 transition-colors text-sm mt-2"
+                    >
+                        <RefreshCw className="w-4 h-4" /> Retry Connection
+                    </button>
+                )}
+            </div>
 
             {/* Visualizer Canvas */}
             <div className="mt-8 h-16 w-full max-w-xs flex items-center justify-center">

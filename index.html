@@ -2,28 +2,32 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>ASILTCOM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #d1d7db; /* WhatsApp-like background */
+        background-color: #d1d7db;
+        margin: 0;
+        padding: 0;
+        overflow: hidden; /* Prevent body scroll, handle inside app */
+        -webkit-tap-highlight-color: transparent;
       }
-      /* Custom scrollbar for webkit */
+      /* Custom scrollbar */
       ::-webkit-scrollbar {
-        width: 6px;
+        width: 5px;
       }
       ::-webkit-scrollbar-track {
         background: transparent;
       }
       ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: rgba(0, 0, 0, 0.2);
         border-radius: 3px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: rgba(0, 0, 0, 0.3);
       }
       @keyframes pulse-ring {
         0% { transform: scale(0.8); opacity: 0.5; }
@@ -31,6 +35,28 @@
       }
       .animate-pulse-ring {
         animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      /* Animation classes */
+      .animate-fade-in {
+        animation: fadeIn 0.3s ease-out;
+      }
+      .animate-fade-in-up {
+        animation: fadeInUp 0.4s ease-out;
+      }
+      .animate-slide-in-right {
+        animation: slideInRight 0.3s ease-out;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translate(-50%, 10px); }
+        to { opacity: 1; transform: translate(-50%, 0); }
+      }
+      @keyframes slideInRight {
+        from { transform: translateX(100%); }
+        to { transform: translateX(0); }
       }
     </style>
   <script type="importmap">
